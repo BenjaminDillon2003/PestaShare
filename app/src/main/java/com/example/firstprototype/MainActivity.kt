@@ -17,12 +17,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FirstPrototypeTheme {
-                // Surface da el fondo correcto a la app (blanco o oscuro según el tema)
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Llamamos al NavGraph que conecta Login y Home
                     NavGraph()
                 }
             }
