@@ -1,7 +1,12 @@
 package com.example.firstprototype.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,20 +18,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(
     onBack: () -> Unit,
-    onPostItem: (String, String) -> Unit
+    onPostItem: (String, String, Uri?) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val scrollState = rememberScrollState()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     Column(
         modifier = Modifier
@@ -84,31 +99,42 @@ fun AddItemScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .border(
                         width = 1.dp,
                         color = Color.LightGray,
                         shape = RoundedCornerShape(16.dp)
                     )
-                    .background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp)),
+                    .background(Color(0xFFF8F9FA))
+                    .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .background(Color(0xFFE9ECEF), RoundedCornerShape(32.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = Color.Gray
-                        )
+                if (selectedImageUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(selectedImageUri),
+                        contentDescription = "Selected image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(Color(0xFFE9ECEF), RoundedCornerShape(32.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                tint = Color.Gray
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = "Upload Photo", fontWeight = FontWeight.Bold, color = Color(0xFF495057))
+                        Text(text = "Tap to select an image", fontSize = 14.sp, color = Color.Gray)
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Upload Photo", fontWeight = FontWeight.Bold, color = Color(0xFF495057))
-                    Text(text = "Tap to select an image", fontSize = 14.sp, color = Color.Gray)
                 }
             }
 
@@ -148,7 +174,7 @@ fun AddItemScreen(
             Button(
                 onClick = { 
                     if (title.isNotBlank() && description.isNotBlank()) {
-                        onPostItem(title, description)
+                        onPostItem(title, description, selectedImageUri)
                     }
                 },
                 modifier = Modifier

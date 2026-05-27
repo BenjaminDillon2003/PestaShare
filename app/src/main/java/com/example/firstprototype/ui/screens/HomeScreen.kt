@@ -1,5 +1,6 @@
 package com.example.firstprototype.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,9 +15,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 import com.example.firstprototype.data.SharedItem
 
 @Composable
@@ -104,18 +107,27 @@ fun DiscoveryItemCard(item: SharedItem) {
     ) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-                // Placeholder for Item Image
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.LightGray)
-                ) {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.align(Alignment.Center).size(48.dp),
-                        tint = Color.White
+                if (item.imageUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(item.imageUri),
+                        contentDescription = item.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
+                } else {
+                    // Placeholder for Item Image
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.LightGray)
+                    ) {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.align(Alignment.Center).size(48.dp),
+                            tint = Color.White
+                        )
+                    }
                 }
                 
                 // Available Badge
@@ -159,7 +171,7 @@ fun DiscoveryItemCard(item: SharedItem) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = item.owner.split(" ").map { it.first() }.joinToString(""),
+                                text = if (item.owner.isNotEmpty()) item.owner.split(" ").map { it.first() }.joinToString("") else "U",
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold

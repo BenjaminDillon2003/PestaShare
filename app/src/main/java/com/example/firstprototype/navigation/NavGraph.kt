@@ -1,5 +1,6 @@
 package com.example.firstprototype.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -110,7 +111,7 @@ fun NavGraph() {
                                 popUpTo("home") { inclusive = false }
                             }
                         },
-                        onPostItem = { name: String, description: String ->
+                        onPostItem = { name: String, description: String, uri: Uri? ->
                             val ownerName = userEmail.substringBefore("@")
                                 .replace(".", " ")
                                 .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
@@ -119,7 +120,8 @@ fun NavGraph() {
                                 id = itemsList.size + 1,
                                 name = name,
                                 owner = ownerName,
-                                category = "General"
+                                category = "General",
+                                imageUri = uri
                             )
                             itemsList.add(newItem)
                             navController.navigate("home") {

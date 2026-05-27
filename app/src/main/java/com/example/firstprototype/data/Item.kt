@@ -1,5 +1,7 @@
 package com.example.firstprototype.data
 
+import android.net.Uri
+
 enum class ItemStatus { AVAILABLE, REQUESTED, BORROWED }
 
 data class SharedItem(
@@ -7,5 +9,6 @@ data class SharedItem(
     val name: String,
     val owner: String,
     val category: String,
-    val status: ItemStatus = ItemStatus.AVAILABLE
+    val status: ItemStatus = ItemStatus.AVAILABLE,
+    val imageUri: Uri? = null
 )
