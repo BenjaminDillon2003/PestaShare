@@ -21,7 +21,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(userEmail: String, onLogout: () -> Unit) {
+    // Extract initials from email for the avatar
+    val initials = if (userEmail.contains(".")) {
+        val parts = userEmail.split(".")
+        if (parts.size >= 2) {
+            (parts[0].take(1) + parts[1].take(1)).uppercase()
+        } else "U"
+    } else if (userEmail.isNotEmpty()) {
+        userEmail.take(2).uppercase()
+    } else "JD"
+
+    val displayName = if (userEmail.contains("@")) {
+        userEmail.substringBefore("@").replace(".", " ").split(" ")
+            .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+    } else if (userEmail.isNotEmpty()) {
+        userEmail
+    } else "Jordan Davis"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +78,7 @@ fun ProfileScreen() {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "JD",
+                            text = initials,
                             color = Color.White,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
@@ -72,7 +89,7 @@ fun ProfileScreen() {
 
                     Column {
                         Text(
-                            text = "Jordan Davis",
+                            text = displayName,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -85,8 +102,8 @@ fun ProfileScreen() {
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "jordan.davis@student.reutlingen-university.de",
-                                fontSize = 14.sp,
+                                text = userEmail.ifEmpty { "jordan.davis@student.reutlingen-university.de" },
+                                fontSize = 12.sp,
                                 color = Color.Gray
                             )
                         }
@@ -100,10 +117,21 @@ fun ProfileScreen() {
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     StatItem(icon = Icons.Outlined.MonetizationOn, value = "3", label = "Points", iconColor = Color(0xFFE8F5E9), tint = Color(0xFF4CAF50))
-                    StatItem(icon = Icons.Outlined.Inventory2, value = "5", label = "Items Shared", iconColor = Color(0xFFE3F2FD), tint = Color(0xFF2196F3))
-                    StatItem(icon = Icons.Outlined.Stars, value = "2", label = "Items Claimed", iconColor = Color(0xFFF3E5F5), tint = Color(0xFF9C27B0))
+                    StatItem(icon = Icons.Outlined.Inventory2, value = "0", label = "Shared", iconColor = Color(0xFFE3F2FD), tint = Color(0xFF2196F3))
+                    StatItem(icon = Icons.Outlined.Stars, value = "0", label = "Claimed", iconColor = Color(0xFFF3E5F5), tint = Color(0xFF9C27B0))
                 }
             }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = onLogout,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE), contentColor = Color.Red),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Sign Out")
         }
     }
 }
