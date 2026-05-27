@@ -20,18 +20,32 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.ui.screens.AddItemScreen
 import com.example.firstprototype.ui.screens.HomeScreen
 import com.example.firstprototype.ui.screens.LoginScreen
 import com.example.firstprototype.ui.screens.ProfileScreen
+import java.util.Locale
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
     var isLoggedIn by remember { mutableStateOf(false) }
+    var userEmail by remember { mutableStateOf("") }
+    
+    // Global state for shared items using mutableStateListOf so changes trigger UI updates
+    val itemsList = remember {
+        mutableStateListOf(
+            SharedItem(1, "Modern Desk Lamp", "Sarah Chen", "Electronics"),
+            SharedItem(2, "Non-stick Frying Pan", "James Wilson", "Kitchen")
+        )
+    }
 
     if (!isLoggedIn) {
-        LoginScreen(onLoginClick = { isLoggedIn = true })
+        LoginScreen(onLoginClick = { email ->
+            userEmail = email
+            isLoggedIn = true
+        })
     } else {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
@@ -86,15 +100,43 @@ fun NavGraph() {
                 startDestination = "home",
                 modifier = Modifier.padding(paddingValues)
             ) {
-                composable("home") { HomeScreen() }
-                composable("add_item") { 
-                    AddItemScreen(onBack = { 
-                        navController.navigate("home") {
-                            popUpTo("home") { inclusive = false }
-                        }
-                    }) 
+                composable("home") { 
+                    HomeScreen(items = itemsList) 
                 }
-                composable("profile") { ProfileScreen() }
+                composable("add_item") { 
+                    AddItemScreen(
+                        onBack = { 
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = false }
+                            }
+                        },
+                        onPostItem = { name: String, description: String ->
+                            val ownerName = userEmail.substringBefore("@")
+                                .replace(".", " ")
+                                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
+                            val newItem = SharedItem(
+                                id = itemsList.size + 1,
+                                name = name,
+                                owner = ownerName,
+                                category = "General"
+                            )
+                            itemsList.add(newItem)
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = false }
+                            }
+                        }
+                    ) 
+                }
+                composable("profile") { 
+                    ProfileScreen(
+                        userEmail = userEmail,
+                        onLogout = {
+                            isLoggedIn = false
+                            userEmail = ""
+                        }
+                    )
+                }
             }
         }
     }

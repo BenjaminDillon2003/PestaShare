@@ -3,7 +3,9 @@ package com.example.firstprototype.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Image
@@ -18,9 +20,13 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemScreen(onBack: () -> Unit) {
+fun AddItemScreen(
+    onBack: () -> Unit,
+    onPostItem: (String, String) -> Unit
+) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -53,6 +59,7 @@ fun AddItemScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .fillMaxWidth()
+                .verticalScroll(scrollState)
         ) {
             Text(
                 text = "Post an Item",
@@ -135,6 +142,29 @@ fun AddItemScreen(onBack: () -> Unit) {
                 shape = RoundedCornerShape(12.dp),
                 minLines = 3
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { 
+                    if (title.isNotBlank() && description.isNotBlank()) {
+                        onPostItem(title, description)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E70F0))
+            ) {
+                Text(
+                    text = "Post Item",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
