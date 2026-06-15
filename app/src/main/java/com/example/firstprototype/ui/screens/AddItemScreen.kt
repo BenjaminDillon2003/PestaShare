@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.firstprototype.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,11 @@ fun AddItemScreen(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val conditionOptions = listOf("New ✨", "In Good Condition 👍", "Used 🤝", "Fair Condition ♻️")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCondition by remember { mutableStateOf(conditionOptions[1]) }
+
     val scrollState = rememberScrollState()
 
     val launcher = rememberLauncherForActivityResult(
@@ -46,8 +52,9 @@ fun AddItemScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(BackgroundSurface)
     ) {
+        // Top Navbar Minimalista
         TopAppBar(
             title = { },
             navigationIcon = {
@@ -56,18 +63,14 @@ fun AddItemScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color(0xFF0D1B2A)
+                            tint = TextPrimary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Back",
-                            color = Color(0xFF0D1B2A),
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text(text = "Back", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundSurface)
         )
 
         Column(
@@ -78,34 +81,25 @@ fun AddItemScreen(
         ) {
             Text(
                 text = "Post an Item",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0D1B2A)
+                style = MaterialTheme.typography.displayLarge,
+                color = TextPrimary
             )
             Text(
-                text = "Share items you no longer need with fellow students",
-                fontSize = 16.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                text = "Share what you no longer use with fellow residents.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
             )
 
-            Text(
-                text = "Photo",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
+            // FOTO CONTENEDOR PREMIUM
+            Text(text = "Photo", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .background(Color(0xFFF8F9FA))
+                    .height(190.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .border(1.dp, BorderLight, RoundedCornerShape(20.dp))
+                    .background(Color.White)
                     .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -118,79 +112,92 @@ fun AddItemScreen(
                     )
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .background(Color(0xFFE9ECEF), RoundedCornerShape(32.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = Color.Gray
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Upload Photo", fontWeight = FontWeight.Bold, color = Color(0xFF495057))
-                        Text(text = "Tap to select an image", fontSize = 14.sp, color = Color.Gray)
+                        Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(36.dp), tint = PestaBlue)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "Upload Item Image", fontSize = 14.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Title",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // TITULO
+            Text(text = "Item Title", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                placeholder = { Text("e.g., Modern Desk Lamp", color = Color.LightGray) },
+                placeholder = { Text("e.g., Desk Lamp, Frying Pan...", color = TextMuted) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp),
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Description",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // CONDICIÓN DESPLEGABLE PREMIUM
+            Text(text = "Condition", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedCondition,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    conditionOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option, color = TextPrimary) },
+                            onClick = {
+                                selectedCondition = option
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // DESCRIPCIÓN
+            Text(text = "Description", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                placeholder = { Text("Tell us more about the item...", color = Color.LightGray) },
+                placeholder = { Text("Add helpful details (e.g., collection spot)...", color = TextMuted) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                minLines = 3
+                shape = RoundedCornerShape(14.dp),
+                minLines = 3,
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
+            // BOTÓN DE ACCIÓN ACCENTUADO
             Button(
-                onClick = { 
+                onClick = {
                     if (title.isNotBlank() && description.isNotBlank()) {
-                        onPostItem(title, description, selectedImageUri)
+                        val finalDescription = "Condition: $selectedCondition\n$description"
+                        onPostItem(title, finalDescription, selectedImageUri)
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E70F0))
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PestaBlue)
             ) {
-                Text(
-                    text = "Post Item",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Text("Publish Item", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
