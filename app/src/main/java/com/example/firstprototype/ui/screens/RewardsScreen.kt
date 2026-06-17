@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.firstprototype.ui.theme.*
 
+/**
+ * Data model for a reward option available in the Eco Market.
+ */
 data class RewardOption(
     val id: Int,
     val title: String,
@@ -32,11 +35,18 @@ data class RewardOption(
     val iconBg: Color
 )
 
+/**
+ * Screen where users can spend their earned Eco-Points on various rewards.
+ * 
+ * @param userPoints The current amount of points the user has.
+ * @param onRedeemReward Callback triggered when a user redeems a reward.
+ */
 @Composable
 fun RewardsScreen(
     userPoints: Int,
-    onRedeemReward: (Int) -> Unit // Resta los puntos en el NavGraph
+    onRedeemReward: (Int) -> Unit
 ) {
+    // List of available rewards (Mock data)
     val rewardsList = listOf(
         RewardOption(
             id = 1,
@@ -69,7 +79,7 @@ fun RewardsScreen(
             .fillMaxSize()
             .background(BackgroundSurface)
     ) {
-        // --- HEADER DE RECOMPENSAS ---
+        // --- HEADER SECTION ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -78,6 +88,7 @@ fun RewardsScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Market Icon
                 Box(
                     modifier = Modifier
                         .size(46.dp)
@@ -105,7 +116,7 @@ fun RewardsScreen(
                 }
             }
 
-            // Wallet de Puntos actual
+            // Current Points Wallet Display
             Surface(
                 color = Color.White,
                 shape = RoundedCornerShape(16.dp),
@@ -138,13 +149,14 @@ fun RewardsScreen(
             color = TextSecondary,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)        )
 
-        // --- LISTA DE RECOMPENSAS ---
+        // --- REWARDS LIST ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(rewardsList) { reward ->
+                // Check if user has enough points for this specific reward
                 val canAfford = userPoints >= reward.cost
 
                 Card(
@@ -157,7 +169,7 @@ fun RewardsScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Icono circular de la recompensa
+                        // Reward Icon with colored background
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
@@ -169,14 +181,14 @@ fun RewardsScreen(
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // Contenido de la info
+                        // Information Content
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = reward.title, style = MaterialTheme.typography.titleLarge, fontSize = 18.sp, color = TextPrimary)
                             Text(text = reward.description, style = MaterialTheme.typography.bodyLarge, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 2.dp))
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Botón interno de canje
+                            // Claim/Redeem Button
                             Button(
                                 onClick = { onRedeemReward(reward.cost) },
                                 enabled = canAfford,

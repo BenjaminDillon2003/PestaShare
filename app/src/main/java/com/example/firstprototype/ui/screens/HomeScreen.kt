@@ -30,6 +30,14 @@ import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.data.ItemStatus
 import com.example.firstprototype.ui.theme.*
 
+/**
+ * The main landing screen of the application where users can discover shared items.
+ * Includes search functionality, category filtering, and a list of available resources.
+ * 
+ * @param items The complete list of items to display.
+ * @param userPoints Current point balance of the user.
+ * @param onItemClick Callback triggered when an item card is tapped.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -41,7 +49,7 @@ fun HomeScreen(
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Electronics", "Kitchen", "Books", "General")
 
-    // Lógica de filtrado dinámico
+    // Dynamic filtering logic based on search text and selected category
     val filteredItems = items.filter { item ->
         val matchesSearch = item.name.contains(searchQuery, ignoreCase = true)
         val matchesCategory = selectedCategory == "All" || item.category.equals(selectedCategory, ignoreCase = true)
@@ -53,7 +61,7 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // --- HEADER ---
+        // --- HEADER SECTION ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,6 +70,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // App Logo
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -74,6 +83,7 @@ fun HomeScreen(
                 Text(text = "Discover", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Black)
             }
 
+            // Points Balance Display
             Surface(color = Color.White, shape = RoundedCornerShape(14.dp), shadowElevation = 3.dp) {
                 Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.MonetizationOn, contentDescription = null, tint = PestaGreen, modifier = Modifier.size(16.dp))
@@ -83,7 +93,7 @@ fun HomeScreen(
             }
         }
 
-        // --- BARRA DE BÚSQUEDA ---
+        // --- SEARCH BAR ---
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -97,7 +107,7 @@ fun HomeScreen(
             colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
         )
 
-        // --- FILTROS DE CATEGORÍA ---
+        // --- CATEGORY FILTERS (Horizontal Row) ---
         LazyRow(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             contentPadding = PaddingValues(horizontal = 24.dp),
@@ -121,7 +131,7 @@ fun HomeScreen(
             }
         }
 
-        // --- LISTA ---
+        // --- ITEMS LIST ---
         if (filteredItems.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Text("No items found matching criteria.", color = TextMuted)
@@ -140,13 +150,21 @@ fun HomeScreen(
     }
 }
 
+/**
+ * A card component that represents an individual item in the discovery feed.
+ * 
+ * @param item The data model for the shared item.
+ * @param onClick Callback triggered when the card is tapped.
+ */
 @Composable
 fun DiscoveryItemCard(item: SharedItem, onClick: () -> Unit) {
+    // Determine badge styling based on item status
     val (badgeText, badgeBgColor, badgeTextColor) = when (item.status) {
         ItemStatus.AVAILABLE -> Triple("Available", Color(0xFFE6F4EA), PestaGreenDark)
         ItemStatus.REQUESTED -> Triple("Requested 💬", Color(0xFFE8F0FE), PestaBlueDark)
         ItemStatus.BORROWED -> Triple("In Recycling Hub ♻️", Color(0xFFF1F3F5), TextSecondary)
         ItemStatus.RECYCLE_SUGGESTED -> Triple("Recycle Alert ⚠️", Color(0xFFFEF3C7), Color(0xFFD97706))
+        ItemStatus.GIVEN -> Triple("Given ✅", Color(0xFFF3F4F6), TextSecondary)
     }
 
     Card(
@@ -156,6 +174,7 @@ fun DiscoveryItemCard(item: SharedItem, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
+            // Item Image with Status Badge
             Box(modifier = Modifier.fillMaxWidth().height(180.dp).padding(8.dp).clip(RoundedCornerShape(16.dp))) {
                 if (item.imageUri != null) {
                     Image(painter = rememberAsyncImagePainter(item.imageUri), contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -172,18 +191,22 @@ fun DiscoveryItemCard(item: SharedItem, onClick: () -> Unit) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text(text = item.name, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
 
-                // Muestra la categoría directamente en la tarjeta de forma elegante
+                // Item Details (Category)
                 Text(text = "Category: ${item.category}", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 2.dp))
 
                 Spacer(modifier = Modifier.height(12.dp))
+                
+                // Footer: Owner Info and Points Value
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Small Owner Avatar
                         Box(modifier = Modifier.size(28.dp).background(Color(0xFFF1F5F9), CircleShape), contentAlignment = Alignment.Center) {
                             Text(text = if (item.owner.isNotEmpty()) item.owner.take(2).uppercase() else "U", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = item.owner, fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                     }
+                    // Points Value Badge
                     Surface(color = Color(0xFFE6F4EA), shape = RoundedCornerShape(6.dp)) {
                         Text(text = "${item.pointsValue} pts", color = PestaGreenDark, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                     }

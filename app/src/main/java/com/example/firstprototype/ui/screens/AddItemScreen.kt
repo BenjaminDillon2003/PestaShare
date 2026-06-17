@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,24 +26,42 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.ui.theme.*
 
+/**
+ * Screen for adding a new item or editing an existing one.
+ * It provides a form for title, category, location, and description.
+ *
+ * @param onBack Callback to return to the previous screen.
+ * @param onPostItem Callback when the user submits the item.
+ * @param initialItem The item to edit (null for a new item).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(
     onBack: () -> Unit,
-    onPostItem: (String, String, Uri?) -> Unit
+    onPostItem: (String, String, String, String, Uri?) -> Unit, // name, description, category, location, uri
+    initialItem: SharedItem? = null
 ) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    // State variables for form fields, initialized with existing data if editing
+    var title by remember { mutableStateOf(initialItem?.name ?: "") }
+    var description by remember { mutableStateOf(initialItem?.description ?: "") }
+    var location by remember { mutableStateOf(initialItem?.location ?: "") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(initialItem?.imageUri) }
 
+    // Category drop-down options and state
+    val categories = listOf("General", "Electronics", "Kitchen", "Books")
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(initialItem?.category ?: categories[0]) }
+
+    // Condition options used for the description placeholder
     val conditionOptions = listOf("New ✨", "In Good Condition 👍", "Used 🤝", "Fair Condition ♻️")
-    var expanded by remember { mutableStateOf(false) }
     var selectedCondition by remember { mutableStateOf(conditionOptions[1]) }
 
     val scrollState = rememberScrollState()
 
+    // Activity launcher for picking an image from the gallery
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -54,17 +73,13 @@ fun AddItemScreen(
             .fillMaxSize()
             .background(BackgroundSurface)
     ) {
-        // Top Navbar Minimalista
+        // --- TOP NAVIGATION ---
         TopAppBar(
             title = { },
             navigationIcon = {
                 TextButton(onClick = onBack) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = "Back", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
@@ -79,19 +94,21 @@ fun AddItemScreen(
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
         ) {
+            // Screen Title
             Text(
-                text = "Post an Item",
+                text = if (initialItem == null) "Post an Item" else "Edit Item",
                 style = MaterialTheme.typography.displayLarge,
                 color = TextPrimary
             )
+            // Screen Subtitle
             Text(
-                text = "Share what you no longer use with fellow residents.",
+                text = if (initialItem == null) "Share what you no longer use with fellow residents." else "Update your item details.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
             )
 
-            // FOTO CONTENEDOR PREMIUM
+            // --- PHOTO PICKER ---
             Text(text = "Photo", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             Box(
                 modifier = Modifier
@@ -121,7 +138,7 @@ fun AddItemScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // TITULO
+            // --- TITLE INPUT ---
             Text(text = "Item Title", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             OutlinedTextField(
                 value = title,
@@ -134,31 +151,31 @@ fun AddItemScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // CONDICIÓN DESPLEGABLE PREMIUM
-            Text(text = "Condition", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
+            // --- CATEGORY DROPDOWN ---
+            Text(text = "Category", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = !categoryExpanded }
             ) {
                 OutlinedTextField(
-                    value = selectedCondition,
+                    value = selectedCategory,
                     onValueChange = {},
                     readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
                 )
                 ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
                 ) {
-                    conditionOptions.forEach { option ->
+                    categories.forEach { category ->
                         DropdownMenuItem(
-                            text = { Text(option, color = TextPrimary) },
+                            text = { Text(category, color = TextPrimary) },
                             onClick = {
-                                selectedCondition = option
-                                expanded = false
+                                selectedCategory = category
+                                categoryExpanded = false
                             }
                         )
                     }
@@ -167,12 +184,26 @@ fun AddItemScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // DESCRIPCIÓN
+            // --- LOCATION / PICKUP SPOT INPUT ---
+            Text(text = "Room / Pickup Location", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
+            OutlinedTextField(
+                value = location,
+                onValueChange = { location = it },
+                placeholder = { Text("e.g., Room 302, Block B Lobby, Laundry Room", color = TextMuted) },
+                leadingIcon = { Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = PestaBlue, modifier = Modifier.size(20.dp)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- DESCRIPTION INPUT ---
             Text(text = "Description", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                placeholder = { Text("Add helpful details (e.g., collection spot)...", color = TextMuted) },
+                placeholder = { Text("Condition: $selectedCondition\nAdd more details...", color = TextMuted) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 minLines = 3,
@@ -181,12 +212,11 @@ fun AddItemScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // BOTÓN DE ACCIÓN ACCENTUADO
+            // --- SUBMIT BUTTON ---
             Button(
                 onClick = {
-                    if (title.isNotBlank() && description.isNotBlank()) {
-                        val finalDescription = "Condition: $selectedCondition\n$description"
-                        onPostItem(title, finalDescription, selectedImageUri)
+                    if (title.isNotBlank()) {
+                        onPostItem(title, description, selectedCategory, location, selectedImageUri)
                     }
                 },
                 modifier = Modifier
@@ -195,7 +225,7 @@ fun AddItemScreen(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PestaBlue)
             ) {
-                Text("Publish Item", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (initialItem == null) "Publish Item" else "Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(40.dp))
         }

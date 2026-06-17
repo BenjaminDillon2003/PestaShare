@@ -19,6 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.firstprototype.ui.theme.*
 
+/**
+ * Initial screen for user authentication.
+ * 
+ * @param onLoginClick Callback triggered when the user successfully logs in, providing their email.
+ */
 @Composable
 fun LoginScreen(onLoginClick: (String) -> Unit) {
     var email by remember { mutableStateOf("") }
@@ -33,7 +38,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- LOGO E IDENTIDAD DE MARCA PREMIUM ---
+        // --- LOGO AND BRAND IDENTITY ---
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -53,6 +58,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // App Name and Tagline
         Text(
             text = "PestaShare",
             style = MaterialTheme.typography.displayLarge,
@@ -78,7 +84,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
 
-        // --- FORMULARIO DE ACCESO PREMIUM ---
+        // --- SIGN IN FORM ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
@@ -95,7 +101,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                // Campo: Correo Electrónico
+                // Email Input Field
                 OutlinedTextField(
                     value = email,
                     onValueChange = {
@@ -121,7 +127,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Campo: Contraseña
+                // Password Input Field
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
@@ -145,6 +151,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                     )
                 )
 
+                // Error message display
                 if (isError) {
                     Text(
                         text = "Please enter a valid email and password.",
@@ -156,7 +163,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Botón de Inicio de Sesión Accentunado
+                // Login Button
                 Button(
                     onClick = {
                         if (email.isNotBlank() && password.isNotBlank()) {
