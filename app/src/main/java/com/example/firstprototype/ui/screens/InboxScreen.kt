@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.data.ItemStatus
+import com.example.firstprototype.data.HistoryLog
 import com.example.firstprototype.ui.theme.*
 
 /**
@@ -27,21 +28,7 @@ import com.example.firstprototype.ui.theme.*
 data class ChatMessage(val id: Int, val itemName: String, val contactName: String, val lastMessage: String, val time: String)
 
 /**
- * Data model for an entry in the user's point history log.
- */
-@Immutable
-data class HistoryLog(val id: Int, val description: String, val points: String, val isPositive: Boolean)
-
-/**
  * The Activity Center screen which consolidates chats, item management, and point history.
- * 
- * @param chats List of active chat conversations.
- * @param history List of point transactions.
- * @param myItems List of items owned by the current user.
- * @param initialTab The tab index to open by default (0: Chats, 1: Items, 2: Points).
- * @param onMarkAsGiven Callback to mark an item as "Given Away".
- * @param onRemoveItem Callback to delete an item listing.
- * @param onEditItem Callback to trigger the edit flow for an item.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,11 +37,10 @@ fun InboxScreen(
     history: List<HistoryLog>,
     myItems: List<SharedItem>,
     initialTab: Int = 0,
-    onMarkAsGiven: (Int) -> Unit,
-    onRemoveItem: (Int) -> Unit,
+    onMarkAsGiven: (String) -> Unit,
+    onRemoveItem: (String) -> Unit,
     onEditItem: (SharedItem) -> Unit
 ) {
-    // Current active tab state, initialized from the navigation argument
     var selectedTab by remember(initialTab) { mutableIntStateOf(initialTab) }
     val tabs = listOf("My Chats", "My Items", "Points")
 
@@ -63,7 +49,6 @@ fun InboxScreen(
             .fillMaxSize()
             .background(BackgroundSurface)
     ) {
-        // --- HEADER ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,7 +67,6 @@ fun InboxScreen(
             Text(text = "Activity Center", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Black)
         }
 
-        // --- TABS CONTROL ---
         SecondaryScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
@@ -100,7 +84,6 @@ fun InboxScreen(
             }
         }
 
-        // --- DYNAMIC CONTENT RENDERER ---
         when (selectedTab) {
             0 -> ChatsList(chats)
             1 -> MyItemsList(myItems, onMarkAsGiven, onRemoveItem, onEditItem)
@@ -109,9 +92,6 @@ fun InboxScreen(
     }
 }
 
-/**
- * Displays a list of active chat previews.
- */
 @Composable
 fun ChatsList(chats: List<ChatMessage>) {
     if (chats.isEmpty()) {
@@ -156,14 +136,11 @@ fun ChatsList(chats: List<ChatMessage>) {
     }
 }
 
-/**
- * Displays the items owned by the user with management controls.
- */
 @Composable
 fun MyItemsList(
     items: List<SharedItem>,
-    onMarkAsGiven: (Int) -> Unit,
-    onRemoveItem: (Int) -> Unit,
+    onMarkAsGiven: (String) -> Unit,
+    onRemoveItem: (String) -> Unit,
     onEditItem: (SharedItem) -> Unit
 ) {
     if (items.isEmpty()) {
@@ -194,7 +171,6 @@ fun MyItemsList(
                                 Text(text = item.category, fontSize = 12.sp, color = TextSecondary)
                             }
                             
-                            // Status label selection logic
                             val statusInfo = when(item.status) {
                                 ItemStatus.GIVEN -> "Given Away" to Color.Gray
                                 ItemStatus.REQUESTED -> "Requested" to PestaBlue
@@ -217,7 +193,6 @@ fun MyItemsList(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Management action buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -262,9 +237,6 @@ fun MyItemsList(
     }
 }
 
-/**
- * Displays the point transaction history of the user.
- */
 @Composable
 fun HistoryList(history: List<HistoryLog>) {
     LazyColumn(

@@ -1,6 +1,7 @@
 package com.example.firstprototype.navigation
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -23,25 +24,29 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.data.ItemStatus
+import com.example.firstprototype.data.UserProfile
+import com.example.firstprototype.data.HistoryLog
 import com.example.firstprototype.ui.screens.*
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.toObject
 import java.time.LocalDate
 
 /**
  * Main navigation component that manages the app's routing and global state.
- * It handles authentication flow, bottom navigation, and screen transitions.
+ * Migrated to Firebase Firestore for real-time data synchronization.
  */
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val sharedPreferences = remember { context.getSharedPreferences("PestaSharePrefs", Context.MODE_PRIVATE) }
     val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
 
     // --- GLOBAL STATE ---
     var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
     var userEmail by remember { mutableStateOf(auth.currentUser?.email ?: "") }
-    var userPoints by remember { mutableStateOf(sharedPreferences.getInt("USER_POINTS", 100)) }
+    var userPoints by remember { mutableIntStateOf(100) }
 
     var selectedItem by remember { mutableStateOf<SharedItem?>(null) }
     var editingItem by remember { mutableStateOf<SharedItem?>(null) }
@@ -56,26 +61,65 @@ fun NavGraph() {
         } else userEmail
     }
 
-    val itemsList = remember {
-        mutableStateListOf(
-            SharedItem(id = 1, name = "Modern Desk Lamp", owner = "Sarah Chen", category = "Electronics", location = "Block A, 201", status = ItemStatus.AVAILABLE, pointsValue = 30, createdAt = LocalDate.now()),
-            SharedItem(id = 2, name = "Non-stick Frying Pan", owner = "James Wilson", category = "Kitchen", location = "Laundry Room", status = ItemStatus.RECYCLE_SUGGESTED, pointsValue = 15, createdAt = LocalDate.now().minusDays(35))
-        )
+    val itemsList = remember { mutableStateListOf<SharedItem>() }
+    val chatsList = remember { mutableStateListOf<ChatMessage>() }
+    val historyList = remember { mutableStateListOf<HistoryLog>() }
+
+    // --- FIRESTORE LISTENERS ---
+    
+    // Listen for Items
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            val listener = db.collection("items")
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.w("Firestore", "Listen failed.", e)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        itemsList.clear()
+                        for (doc in snapshot) {
+                            val item = doc.toObject<SharedItem>().copy(id = doc.id)
+                            itemsList.add(item)
+                        }
+                    }
+                }
+        }
     }
 
-    val chatsList = remember {
-        mutableStateListOf<ChatMessage>(
-            ChatMessage(1, "Welcome Guide", "PestaShare Team", "Welcome to Pestalozzistraße! Start sharing sustainably.", "1d ago")
-        )
+    // Listen for User Profile (Points)
+    LaunchedEffect(userEmail) {
+        if (userEmail.isNotEmpty()) {
+            db.collection("users").document(userEmail)
+                .addSnapshotListener { snapshot, e ->
+                    if (snapshot != null && snapshot.exists()) {
+                        val profile = snapshot.toObject<UserProfile>()
+                        userPoints = profile?.points ?: 100
+                    } else {
+                        // Create profile if it doesn't exist
+                        db.collection("users").document(userEmail)
+                            .set(UserProfile(email = userEmail, displayName = currentUserDisplayName, points = 100))
+                    }
+                }
+        }
     }
 
-    val historyList = remember {
-        mutableStateListOf<HistoryLog>(
-            HistoryLog(1, "Initial Balance Setup", "+100 pts", true)
-        )
+    // Listen for History
+    LaunchedEffect(userEmail) {
+        if (userEmail.isNotEmpty()) {
+            db.collection("users").document(userEmail).collection("history")
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, e ->
+                    if (snapshot != null) {
+                        historyList.clear()
+                        for (doc in snapshot) {
+                            historyList.add(doc.toObject<HistoryLog>().copy(id = doc.id))
+                        }
+                    }
+                }
+        }
     }
-
-    LaunchedEffect(userPoints) { sharedPreferences.edit().putInt("USER_POINTS", userPoints).apply() }
 
     if (!isLoggedIn) {
         LoginScreen(onLoginSuccess = { email ->
@@ -131,9 +175,22 @@ fun NavGraph() {
                     AddItemScreen(
                         onBack = { navController.popBackStack() },
                         onPostItem = { name, description, category, location, isRequest, uri ->
-                            val newId = (itemsList.maxOfOrNull { it.id } ?: 0) + 1
-                            itemsList.add(SharedItem(id = newId, name = name, description = description, owner = currentUserDisplayName, category = category, location = location, isRequest = isRequest, imageUri = uri, status = ItemStatus.AVAILABLE, pointsValue = 50, createdAt = LocalDate.now()))
-                            historyList.add(0, HistoryLog(historyList.size + 1, "Published '$name'", "+0 pts", true))
+                            val newItem = SharedItem(
+                                name = name,
+                                description = description,
+                                owner = currentUserDisplayName,
+                                ownerEmail = userEmail,
+                                category = category,
+                                location = location,
+                                isRequest = isRequest,
+                                imageUriString = uri?.toString(),
+                                status = ItemStatus.AVAILABLE
+                            )
+                            db.collection("items").add(newItem)
+                                .addOnSuccessListener {
+                                    val log = HistoryLog(description = "Published '$name'", points = "+0 pts", isPositive = true)
+                                    db.collection("users").document(userEmail).collection("history").add(log)
+                                }
                             navController.navigate("home") { popUpTo("home") { inclusive = false } }
                         }
                     )
@@ -144,10 +201,15 @@ fun NavGraph() {
                         onBack = { navController.popBackStack() },
                         onPostItem = { name, description, category, location, isRequest, uri ->
                             editingItem?.let { oldItem ->
-                                val index = itemsList.indexOfFirst { it.id == oldItem.id }
-                                if (index != -1) {
-                                    itemsList[index] = itemsList[index].copy(name = name, description = description, category = category, location = location, isRequest = isRequest, imageUri = uri)
-                                }
+                                val updatedItem = oldItem.copy(
+                                    name = name,
+                                    description = description,
+                                    category = category,
+                                    location = location,
+                                    isRequest = isRequest,
+                                    imageUriString = uri?.toString()
+                                )
+                                db.collection("items").document(oldItem.id).set(updatedItem)
                             }
                             editingItem = null
                             navController.popBackStack()
@@ -158,8 +220,12 @@ fun NavGraph() {
                     RewardsScreen(
                         userPoints = userPoints,
                         onRedeemReward = { cost ->
-                            userPoints -= cost
-                            historyList.add(0, HistoryLog(historyList.size + 1, "Redeemed Campus Reward", "-$cost pts", false))
+                            val newPoints = userPoints - cost
+                            db.collection("users").document(userEmail).update("points", newPoints)
+                                .addOnSuccessListener {
+                                    val log = HistoryLog(description = "Redeemed Campus Reward", points = "-$cost pts", isPositive = false)
+                                    db.collection("users").document(userEmail).collection("history").add(log)
+                                }
                         }
                     )
                 }
@@ -171,17 +237,17 @@ fun NavGraph() {
                     InboxScreen(
                         chats = chatsList,
                         history = historyList,
-                        myItems = itemsList.filter { it.owner == currentUserDisplayName },
+                        myItems = itemsList.filter { it.ownerEmail == userEmail },
                         initialTab = tab,
                         onMarkAsGiven = { itemId ->
-                            val index = itemsList.indexOfFirst { it.id == itemId }
-                            if (index != -1) {
-                                itemsList[index] = itemsList[index].copy(status = ItemStatus.GIVEN)
-                                historyList.add(0, HistoryLog(historyList.size + 1, "Item '${itemsList[index].name}' shared!", "+0 pts", true))
-                            }
+                            db.collection("items").document(itemId.toString()).update("status", ItemStatus.GIVEN)
+                                .addOnSuccessListener {
+                                    val log = HistoryLog(description = "Item shared!", points = "+0 pts", isPositive = true)
+                                    db.collection("users").document(userEmail).collection("history").add(log)
+                                }
                         },
                         onRemoveItem = { itemId ->
-                            itemsList.removeIf { it.id == itemId }
+                            db.collection("items").document(itemId.toString()).delete()
                         },
                         onEditItem = { item ->
                             editingItem = item
@@ -193,7 +259,7 @@ fun NavGraph() {
                     ProfileScreen(
                         userEmail = userEmail,
                         userPoints = userPoints,
-                        sharedItemsCount = itemsList.count { it.owner == currentUserDisplayName },
+                        sharedItemsCount = itemsList.count { it.ownerEmail == userEmail },
                         onManageItems = { navController.navigate("inbox?tab=1") },
                         onLogout = { 
                             auth.signOut()
@@ -209,15 +275,16 @@ fun NavGraph() {
                             userPoints = userPoints,
                             onBack = { navController.popBackStack() },
                             onActionSuccess = { pointsEffect, customMessage ->
-                                userPoints += pointsEffect
-                                val index = itemsList.indexOfFirst { it.id == item.id }
-                                if (index != -1) {
-                                    val newStatus = if (pointsEffect > 0) ItemStatus.BORROWED else ItemStatus.REQUESTED
-                                    itemsList[index] = itemsList[index].copy(status = newStatus)
-                                }
-                                chatsList.add(0, ChatMessage(chatsList.size + 1, item.name, item.owner, customMessage, "Just now"))
+                                val newPoints = userPoints + pointsEffect
+                                db.collection("users").document(userEmail).update("points", newPoints)
+                                
+                                val newStatus = if (pointsEffect > 0) ItemStatus.BORROWED else ItemStatus.REQUESTED
+                                db.collection("items").document(item.id).update("status", newStatus)
+                                
                                 val prefix = if (pointsEffect >= 0) "+$pointsEffect" else "$pointsEffect"
-                                historyList.add(0, HistoryLog(historyList.size + 1, "Operation on '${item.name}'", "$prefix pts", pointsEffect >= 0))
+                                val log = HistoryLog(description = "Operation on '${item.name}'", points = "$prefix pts", isPositive = pointsEffect >= 0)
+                                db.collection("users").document(userEmail).collection("history").add(log)
+
                                 navController.navigate("home") { popUpTo("home") { inclusive = false } }
                             }
                         )
