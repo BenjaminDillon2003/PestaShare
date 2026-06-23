@@ -3,14 +3,12 @@ package com.example.firstprototype.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CardMembership
-import androidx.compose.material.icons.rounded.Coffee
-import androidx.compose.material.icons.rounded.LocalLaundryService
-import androidx.compose.material.icons.rounded.MonetizationOn
-import androidx.compose.material.icons.rounded.Moped
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,7 +34,19 @@ data class RewardOption(
 )
 
 /**
- * Screen where users can spend their earned Eco-Points on various rewards.
+ * Data model for a leaderboard entry to gamify community participation.
+ */
+data class LeaderboardEntry(
+    val rank: Int,
+    val name: String,
+    val points: Int,
+    val avatarInitial: String,
+    val isCurrentUser: Boolean = false
+)
+
+/**
+ * Enhanced Hub Screen: Points, Impact, Leaderboard, and Market.
+ * This screen encourages community engagement through gamification and impact visualization.
  * 
  * @param userPoints The current amount of points the user has.
  * @param onRedeemReward Callback triggered when a user redeems a reward.
@@ -74,6 +84,15 @@ fun RewardsScreen(
         )
     )
 
+    // Mock leaderboard data to encourage healthy competition
+    val topNeighbors = listOf(
+        LeaderboardEntry(1, "Sarah Chen", 850, "S"),
+        LeaderboardEntry(2, "Alex B.", 720, "A", isCurrentUser = true),
+        LeaderboardEntry(3, "James Wilson", 640, "J"),
+        LeaderboardEntry(4, "Elena M.", 510, "E"),
+        LeaderboardEntry(5, "Mateo D.", 480, "M")
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,12 +102,12 @@ fun RewardsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .padding(start = 24.dp, top = 20.dp, end = 24.dp, bottom = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Market Icon
+                // Hub Icon
                 Box(
                     modifier = Modifier
                         .size(46.dp)
@@ -106,17 +125,15 @@ fun RewardsScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
-                Column {
-                    Text(
-                        text = "Eco Market",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Black
-                    )
-                }
+                Text(
+                    text = "Eco Hub",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Black
+                )
             }
 
-            // Current Points Wallet Display
+            // Current Points Display
             Surface(
                 color = Color.White,
                 shape = RoundedCornerShape(16.dp),
@@ -143,72 +160,203 @@ fun RewardsScreen(
             }
         }
 
-        Text(
-            text = "Redeem your Eco-Points for campus and housing benefits at the end of the month.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)        )
-
-        // --- REWARDS LIST ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            items(rewardsList) { reward ->
-                // Check if user has enough points for this specific reward
-                val canAfford = userPoints >= reward.cost
-
+            // --- IMPACT SUMMARY ---
+            item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSurface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 28.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = PestaGreen.copy(alpha = 0.08f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Reward Icon with colored background
-                        Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .background(reward.iconBg.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = reward.icon, contentDescription = null, tint = reward.iconBg, modifier = Modifier.size(26.dp))
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        // Information Content
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = reward.title, style = MaterialTheme.typography.titleLarge, fontSize = 18.sp, color = TextPrimary)
-                            Text(text = reward.description, style = MaterialTheme.typography.bodyLarge, fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 2.dp))
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // Claim/Redeem Button
-                            Button(
-                                onClick = { onRedeemReward(reward.cost) },
-                                enabled = canAfford,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PestaBlue,
-                                    disabledContainerColor = Color(0xFFF1F5F9)
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.height(36.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                            ) {
-                                Text(
-                                    text = if (canAfford) "Claim for ${reward.cost} pts" else "Needs ${reward.cost} pts",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (canAfford) Color.White else TextMuted
-                                )
-                            }
+                            Text(text = "Your Community Impact", style = MaterialTheme.typography.titleMedium, color = PestaGreenDark)
+                            Text(text = "You've saved approximately 12kg of CO2 this month! 🍃", fontSize = 13.sp, color = TextSecondary)
                         }
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = PestaGreen, modifier = Modifier.size(32.dp))
                     }
+                }
+            }
+
+            // --- LEADERBOARD SECTION ---
+            item {
+                Text(
+                    text = "Top Neighbors",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp)
+                )
+                
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(topNeighbors) { entry ->
+                        LeaderboardHubCard(entry)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(28.dp))
+            }
+
+            // --- REWARDS SECTION ---
+            item {
+                Text(
+                    text = "Eco Market",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "Redeem points for exclusive benefits.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)
+                )
+            }
+
+            items(rewardsList) { reward ->
+                val canAfford = userPoints >= reward.cost
+                RewardHubItem(reward, canAfford) { onRedeemReward(reward.cost) }
+            }
+        }
+    }
+}
+
+@Composable
+fun LeaderboardHubCard(entry: LeaderboardEntry) {
+    Card(
+        modifier = Modifier.width(130.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (entry.isCurrentUser) PestaBlue.copy(alpha = 0.05f) else Color.White
+        ),
+        border = if (entry.isCurrentUser) androidx.compose.foundation.BorderStroke(1.dp, PestaBlue.copy(alpha = 0.2f)) else null
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        brush = if (entry.rank == 1) Brush.linearGradient(listOf(Color(0xFFFFD700), Color(0xFFFFA500))) 
+                                else Brush.linearGradient(listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0))),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = entry.avatarInitial,
+                    color = if (entry.rank == 1) Color.White else TextSecondary,
+                    fontWeight = FontWeight.Black
+                )
+                if (entry.rank == 1) {
+                    Icon(
+                        Icons.Rounded.EmojiEvents,
+                        contentDescription = null,
+                        tint = Color(0xFFFFA500),
+                        modifier = Modifier.size(14.dp).align(Alignment.BottomEnd).offset(x = 4.dp, y = 4.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Text(
+                text = entry.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontSize = 13.sp,
+                color = TextPrimary,
+                maxLines = 1
+            )
+            
+            Text(
+                text = "${entry.points} pts",
+                color = PestaGreenDark,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+            
+            Surface(
+                modifier = Modifier.padding(top = 8.dp),
+                color = BackgroundSurface,
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    text = "#${entry.rank}",
+                    color = TextSecondary,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardHubItem(reward: RewardOption, canAfford: Boolean, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Reward Icon
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(reward.iconBg.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = reward.icon, contentDescription = null, tint = reward.iconBg, modifier = Modifier.size(26.dp))
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Info Content
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = reward.title, style = MaterialTheme.typography.titleLarge, fontSize = 17.sp, color = TextPrimary)
+                Text(text = reward.description, fontSize = 12.sp, color = TextSecondary, lineHeight = 16.sp)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Action Button
+                Button(
+                    onClick = onClick,
+                    enabled = canAfford,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PestaBlue,
+                        disabledContainerColor = Color(0xFFF1F5F9)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = if (canAfford) "Claim for ${reward.cost} pts" else "Needs ${reward.cost} pts",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (canAfford) Color.White else TextMuted
+                    )
                 }
             }
         }

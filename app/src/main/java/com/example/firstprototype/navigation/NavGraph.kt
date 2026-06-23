@@ -24,6 +24,7 @@ import androidx.navigation.navArgument
 import com.example.firstprototype.data.SharedItem
 import com.example.firstprototype.data.ItemStatus
 import com.example.firstprototype.ui.screens.*
+import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 
 /**
@@ -35,18 +36,16 @@ fun NavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val sharedPreferences = remember { context.getSharedPreferences("PestaSharePrefs", Context.MODE_PRIVATE) }
+    val auth = remember { FirebaseAuth.getInstance() }
 
     // --- GLOBAL STATE ---
-    // These states are managed here to ensure consistency across different screens.
-    var isLoggedIn by remember { mutableStateOf(false) }
-    var userEmail by remember { mutableStateOf("") }
+    var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
+    var userEmail by remember { mutableStateOf(auth.currentUser?.email ?: "") }
     var userPoints by remember { mutableStateOf(sharedPreferences.getInt("USER_POINTS", 100)) }
-    
-    // States for temporary data during transitions
+
     var selectedItem by remember { mutableStateOf<SharedItem?>(null) }
     var editingItem by remember { mutableStateOf<SharedItem?>(null) }
 
-    // Helper to format the user's display name based on their email
     val currentUserDisplayName = remember(userEmail) {
         if (userEmail.contains("@")) {
             userEmail.substringBefore("@")
@@ -57,7 +56,6 @@ fun NavGraph() {
         } else userEmail
     }
 
-    // Global list of shared items (mock database)
     val itemsList = remember {
         mutableStateListOf(
             SharedItem(id = 1, name = "Modern Desk Lamp", owner = "Sarah Chen", category = "Electronics", location = "Block A, 201", status = ItemStatus.AVAILABLE, pointsValue = 30, createdAt = LocalDate.now()),
@@ -65,26 +63,22 @@ fun NavGraph() {
         )
     }
 
-    // Global list of chat messages
     val chatsList = remember {
         mutableStateListOf<ChatMessage>(
             ChatMessage(1, "Welcome Guide", "PestaShare Team", "Welcome to Pestalozzistraße! Start sharing sustainably.", "1d ago")
         )
     }
 
-    // Global points transaction history
     val historyList = remember {
         mutableStateListOf<HistoryLog>(
             HistoryLog(1, "Initial Balance Setup", "+100 pts", true)
         )
     }
 
-    // Persist points to shared preferences whenever they change
     LaunchedEffect(userPoints) { sharedPreferences.edit().putInt("USER_POINTS", userPoints).apply() }
 
-    // --- AUTHENTICATION GATE ---
     if (!isLoggedIn) {
-        LoginScreen(onLoginClick = { email ->
+        LoginScreen(onLoginSuccess = { email ->
             userEmail = email
             isLoggedIn = true
         })
@@ -94,7 +88,6 @@ fun NavGraph() {
 
         Scaffold(
             bottomBar = {
-                // Main Bottom Navigation Bar
                 NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
                     val items = listOf(
                         Triple("home", "Home", Icons.Outlined.Home to Icons.Filled.Home),
@@ -126,10 +119,7 @@ fun NavGraph() {
                 }
             }
         ) { paddingValues ->
-            // --- NAVIGATION HOST ---
             NavHost(navController = navController, startDestination = "home", modifier = Modifier.padding(paddingValues)) {
-                
-                // Dashboard with available items
                 composable("home") {
                     HomeScreen(
                         items = itemsList.filter { it.status != ItemStatus.GIVEN },
@@ -137,30 +127,26 @@ fun NavGraph() {
                         onItemClick = { item -> selectedItem = item; navController.navigate("item_detail") }
                     )
                 }
-
-                // Screen to create a new item listing
                 composable("add_item") {
                     AddItemScreen(
                         onBack = { navController.popBackStack() },
-                        onPostItem = { name, description, category, location, uri ->
+                        onPostItem = { name, description, category, location, isRequest, uri ->
                             val newId = (itemsList.maxOfOrNull { it.id } ?: 0) + 1
-                            itemsList.add(SharedItem(id = newId, name = name, description = description, owner = currentUserDisplayName, category = category, location = location, imageUri = uri, status = ItemStatus.AVAILABLE, pointsValue = 50, createdAt = LocalDate.now()))
+                            itemsList.add(SharedItem(id = newId, name = name, description = description, owner = currentUserDisplayName, category = category, location = location, isRequest = isRequest, imageUri = uri, status = ItemStatus.AVAILABLE, pointsValue = 50, createdAt = LocalDate.now()))
                             historyList.add(0, HistoryLog(historyList.size + 1, "Published '$name'", "+0 pts", true))
                             navController.navigate("home") { popUpTo("home") { inclusive = false } }
                         }
                     )
                 }
-
-                // Screen to edit an existing item
                 composable("edit_item") {
                     AddItemScreen(
                         initialItem = editingItem,
                         onBack = { navController.popBackStack() },
-                        onPostItem = { name, description, category, location, uri ->
+                        onPostItem = { name, description, category, location, isRequest, uri ->
                             editingItem?.let { oldItem ->
                                 val index = itemsList.indexOfFirst { it.id == oldItem.id }
                                 if (index != -1) {
-                                    itemsList[index] = itemsList[index].copy(name = name, description = description, category = category, location = location, imageUri = uri)
+                                    itemsList[index] = itemsList[index].copy(name = name, description = description, category = category, location = location, isRequest = isRequest, imageUri = uri)
                                 }
                             }
                             editingItem = null
@@ -168,8 +154,6 @@ fun NavGraph() {
                         }
                     )
                 }
-
-                // Campus rewards market
                 composable("rewards") {
                     RewardsScreen(
                         userPoints = userPoints,
@@ -179,8 +163,6 @@ fun NavGraph() {
                         }
                     )
                 }
-
-                // Activity Center: Messages, My Items, and History
                 composable(
                     route = "inbox?tab={tab}",
                     arguments = listOf(navArgument("tab") { type = NavType.IntType; defaultValue = 0 })
@@ -207,19 +189,19 @@ fun NavGraph() {
                         }
                     )
                 }
-
-                // User profile and account management
                 composable("profile") {
                     ProfileScreen(
                         userEmail = userEmail,
                         userPoints = userPoints,
                         sharedItemsCount = itemsList.count { it.owner == currentUserDisplayName },
                         onManageItems = { navController.navigate("inbox?tab=1") },
-                        onLogout = { isLoggedIn = false; userEmail = "" }
+                        onLogout = { 
+                            auth.signOut()
+                            isLoggedIn = false
+                            userEmail = "" 
+                        }
                     )
                 }
-
-                // Detailed view of a specific item
                 composable("item_detail") {
                     selectedItem?.let { item ->
                         ItemDetailScreen(

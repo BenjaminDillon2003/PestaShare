@@ -2,7 +2,9 @@ package com.example.firstprototype.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.outlined.Email
@@ -18,26 +20,37 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.firstprototype.ui.theme.*
+import com.google.firebase.auth.FirebaseAuth
 
 /**
- * Initial screen for user authentication.
+ * Enhanced Login Screen with Firebase Authentication.
+ * Restricts access to university students only.
  * 
- * @param onLoginClick Callback triggered when the user successfully logs in, providing their email.
+ * @param onLoginSuccess Callback triggered when the user successfully authenticates.
  */
 @Composable
-fun LoginScreen(onLoginClick: (String) -> Unit) {
+fun LoginScreen(onLoginSuccess: (String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var isRegisterMode by remember { mutableStateOf(false) }
+
+    val auth = remember { FirebaseAuth.getInstance() }
+    val universityDomain = "@student.reutlingen-university.de"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundSurface)
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 32.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(40.dp))
+
         // --- LOGO AND BRAND IDENTITY ---
         Box(
             modifier = Modifier
@@ -58,7 +71,6 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // App Name and Tagline
         Text(
             text = "PestaShare",
             style = MaterialTheme.typography.displayLarge,
@@ -76,15 +88,9 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        Text(
-            text = "Connect with fellow residents and share resources sustainably.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
-            modifier = Modifier.padding(top = 12.dp, bottom = 40.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // --- SIGN IN FORM ---
+        // --- SIGN IN / SIGN UP FORM ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
@@ -95,13 +101,12 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                 modifier = Modifier.padding(24.dp)
             ) {
                 Text(
-                    text = "Sign In",
+                    text = if (isRegisterMode) "Create Account" else "Sign In",
                     style = MaterialTheme.typography.titleLarge,
                     color = TextPrimary,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                // Email Input Field
                 OutlinedTextField(
                     value = email,
                     onValueChange = {
@@ -109,7 +114,7 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                         isError = false
                     },
                     label = { Text("University Email") },
-                    placeholder = { Text("username@student.reutlingen-university.de", color = TextMuted) },
+                    placeholder = { Text("user$universityDomain", color = TextMuted) },
                     leadingIcon = {
                         Icon(Icons.Outlined.Email, contentDescription = null, tint = TextSecondary)
                     },
@@ -119,15 +124,12 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                     isError = isError,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = BackgroundSurface,
-                        unfocusedContainerColor = BackgroundSurface,
-                        focusedLabelColor = PestaBlue,
-                        unfocusedLabelColor = TextSecondary
+                        unfocusedContainerColor = BackgroundSurface
                     )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Password Input Field
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
@@ -145,17 +147,14 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
                     isError = isError,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = BackgroundSurface,
-                        unfocusedContainerColor = BackgroundSurface,
-                        focusedLabelColor = PestaBlue,
-                        unfocusedLabelColor = TextSecondary
+                        unfocusedContainerColor = BackgroundSurface
                     )
                 )
 
-                // Error message display
                 if (isError) {
                     Text(
-                        text = "Please enter a valid email and password.",
-                        color = Color.Red,
+                        text = errorMessage.ifEmpty { "Please enter valid credentials." },
+                        color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 8.dp, start = 4.dp)
                     )
@@ -163,29 +162,79 @@ fun LoginScreen(onLoginClick: (String) -> Unit) {
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Login Button
                 Button(
                     onClick = {
                         if (email.isNotBlank() && password.isNotBlank()) {
-                            onLoginClick(email)
+                            // Domain validation check
+                            if (!email.trim().lowercase().endsWith(universityDomain)) {
+                                isError = true
+                                errorMessage = "Please use your $universityDomain email."
+                                return@Button
+                            }
+
+                            isLoading = true
+                            isError = false
+                            if (isRegisterMode) {
+                                auth.createUserWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { task ->
+                                        isLoading = false
+                                        if (task.isSuccessful) {
+                                            onLoginSuccess(email)
+                                        } else {
+                                            isError = true
+                                            errorMessage = task.exception?.message ?: "Registration failed."
+                                        }
+                                    }
+                            } else {
+                                auth.signInWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { task ->
+                                        isLoading = false
+                                        if (task.isSuccessful) {
+                                            onLoginSuccess(email)
+                                        } else {
+                                            isError = true
+                                            errorMessage = task.exception?.message ?: "Authentication failed."
+                                        }
+                                    }
+                            }
                         } else {
                             isError = true
+                            errorMessage = "Email and password cannot be empty."
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PestaBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = PestaBlue),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text(
+                            text = if (isRegisterMode) "Register" else "Get Started",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(
+                    onClick = { isRegisterMode = !isRegisterMode },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(
-                        text = "Get Started",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        text = if (isRegisterMode) "Already have an account? Sign In" else "New here? Create an account",
+                        color = PestaBlue,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }

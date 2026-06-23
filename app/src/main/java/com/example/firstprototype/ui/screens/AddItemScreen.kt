@@ -31,7 +31,7 @@ import com.example.firstprototype.ui.theme.*
 
 /**
  * Screen for adding a new item or editing an existing one.
- * It provides a form for title, category, location, and description.
+ * Updated to support both "Offers" and "Requests" (Wishlist).
  *
  * @param onBack Callback to return to the previous screen.
  * @param onPostItem Callback when the user submits the item.
@@ -41,14 +41,15 @@ import com.example.firstprototype.ui.theme.*
 @Composable
 fun AddItemScreen(
     onBack: () -> Unit,
-    onPostItem: (String, String, String, String, Uri?) -> Unit, // name, description, category, location, uri
+    onPostItem: (String, String, String, String, Boolean, Uri?) -> Unit, // name, description, category, location, isRequest, uri
     initialItem: SharedItem? = null
 ) {
-    // State variables for form fields, initialized with existing data if editing
+    // State variables for form fields
     var title by remember { mutableStateOf(initialItem?.name ?: "") }
     var description by remember { mutableStateOf(initialItem?.description ?: "") }
     var location by remember { mutableStateOf(initialItem?.location ?: "") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(initialItem?.imageUri) }
+    var isRequest by remember { mutableStateOf(initialItem?.isRequest ?: false) }
 
     // Category drop-down options and state
     val categories = listOf("General", "Electronics", "Kitchen", "Books")
@@ -96,17 +97,41 @@ fun AddItemScreen(
         ) {
             // Screen Title
             Text(
-                text = if (initialItem == null) "Post an Item" else "Edit Item",
+                text = if (initialItem == null) "Create Post" else "Edit Post",
                 style = MaterialTheme.typography.displayLarge,
                 color = TextPrimary
             )
-            // Screen Subtitle
-            Text(
-                text = if (initialItem == null) "Share what you no longer use with fellow residents." else "Update your item details.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
-            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- TYPE SELECTOR ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .padding(4.dp)
+            ) {
+                listOf(false to "Offering", true to "Requesting").forEach { (type, label) ->
+                    val selected = isRequest == type
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) PestaBlue else Color.Transparent)
+                            .clickable { isRequest = type }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (selected) Color.White else TextSecondary,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // --- PHOTO PICKER ---
             Text(text = "Photo", style = MaterialTheme.typography.titleLarge, color = TextPrimary, modifier = Modifier.padding(bottom = 10.dp))
@@ -216,7 +241,7 @@ fun AddItemScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onPostItem(title, description, selectedCategory, location, selectedImageUri)
+                        onPostItem(title, description, selectedCategory, location, isRequest, selectedImageUri)
                     }
                 },
                 modifier = Modifier
@@ -225,7 +250,7 @@ fun AddItemScreen(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PestaBlue)
             ) {
-                Text(if (initialItem == null) "Publish Item" else "Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (initialItem == null) "Publish Post" else "Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(40.dp))
         }

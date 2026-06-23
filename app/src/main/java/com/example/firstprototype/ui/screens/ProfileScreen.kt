@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,13 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.firstprototype.ui.theme.*
 
 /**
- * Screen displaying user profile information, statistics, and account actions.
- * 
- * @param userEmail The authenticated user's email address.
- * @param userPoints Current point balance.
- * @param sharedItemsCount Number of items the user has listed.
- * @param onManageItems Callback to navigate to the "My Items" management tab.
- * @param onLogout Callback to sign out the user.
+ * Enhanced Profile Screen with Sustainability Gamification.
  */
 @Composable
 fun ProfileScreen(
@@ -35,7 +30,6 @@ fun ProfileScreen(
     onManageItems: () -> Unit,
     onLogout: () -> Unit
 ) {
-    // Logic to format a user-friendly display name from the email
     val displayName = if (userEmail.contains("@")) {
         userEmail.substringBefore("@")
             .replace(".", " ")
@@ -46,34 +40,41 @@ fun ProfileScreen(
         userEmail
     } else "User"
 
-    // Generate initials for the avatar placeholder
     val initials = displayName.split(" ").map { it.take(1) }.joinToString("").take(2).uppercase()
+
+    // Gamification Logic (Mock)
+    val userLevel = when {
+        sharedItemsCount >= 10 -> "Earth Guardian 🌍"
+        sharedItemsCount >= 5 -> "Sustainability Hero 🌟"
+        else -> "Eco Novice 🌱"
+    }
+    val progress = (sharedItemsCount % 5) / 5f
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundSurface)
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "Profile",
             style = MaterialTheme.typography.displayLarge,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 24.dp)
+            color = TextPrimary
         )
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // --- USER IDENTITY CARD ---
+        // --- USER IDENTITY & LEVEL CARD ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Gradient Avatar
                 Box(
                     modifier = Modifier
                         .size(90.dp)
@@ -83,116 +84,97 @@ fun ProfileScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = initials,
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black
-                    )
+                    Text(text = initials, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Email Display Chip
+                Text(text = displayName, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+                
+                // Level Badge
                 Surface(
-                    color = BackgroundSurface,
-                    shape = RoundedCornerShape(10.dp)
+                    color = PestaBlue.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Email,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = TextSecondary
-                        )
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = PestaBlue, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = userEmail.ifEmpty { "student@reutlingen-university.de" },
-                            fontSize = 12.sp,
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text(text = userLevel, fontSize = 12.sp, color = PestaBlue, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // --- STATISTICS ROW ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                // Progress to next level
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Level Progress", fontSize = 12.sp, color = TextSecondary)
+                        Text("${(progress * 100).toInt()}%", fontSize = 12.sp, color = PestaBlue, fontWeight = FontWeight.Bold)
+                    }
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .height(8.dp),
+                        color = PestaBlue,
+                        trackColor = BackgroundSurface,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     StatBox(icon = Icons.Outlined.MonetizationOn, value = userPoints.toString(), label = "Points", color = PestaGreen)
                     StatBox(icon = Icons.Outlined.Inventory2, value = sharedItemsCount.toString(), label = "Shared", color = PestaBlue)
-                    StatBox(icon = Icons.Outlined.Stars, value = "0", label = "Rescued", color = Color(0xFF8B5CF6))
+                    StatBox(icon = Icons.Outlined.Public, value = "${sharedItemsCount * 2}kg", label = "CO2 Saved", color = Color(0xFF8B5CF6))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- ACTION BUTTONS ---
-
-        // Button to jump directly to managing user's listed items
+        // --- ACCOUNT ACTIONS ---
+        Text(text = "Manage Account", style = MaterialTheme.typography.titleMedium, color = TextSecondary, modifier = Modifier.padding(bottom = 12.dp))
+        
         Button(
             onClick = onManageItems,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PestaBlue),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, PestaBlue.copy(alpha = 0.2f))
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = TextPrimary),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
         ) {
             Icon(Icons.Outlined.Inventory2, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(10.dp))
-            Text("Manage My Items", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("My Active Postings", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Sign Out Button
         Button(
             onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2), contentColor = Color(0xFFDC2626)),
-            shape = RoundedCornerShape(14.dp)
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEF2F2), contentColor = Color(0xFFDC2626)),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Sign Out", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("Sign Out", fontWeight = FontWeight.Bold)
         }
     }
 }
 
-/**
- * Small component to display a single statistic with an icon and label.
- */
 @Composable
 fun StatBox(icon: ImageVector, value: String, label: String, color: Color) {
-    Surface(
-        modifier = Modifier.width(85.dp),
-        color = BackgroundSurface,
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Black, color = TextPrimary)
-            Text(text = label, fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Bold)
-        }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Black, color = TextPrimary, modifier = Modifier.padding(top = 4.dp))
+        Text(text = label, fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
     }
 }

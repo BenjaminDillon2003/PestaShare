@@ -24,6 +24,7 @@ enum class ItemStatus {
  * @property category The classification of the item (e.g., Electronics, Kitchen).
  * @property location Specific room or pickup spot within the housing block.
  * @property status Current availability state of the item.
+ * @property isRequest Whether the item is a request (wishlist) or an offer.
  * @property imageUri Optional URI for the item's photograph.
  * @property pointsValue Cost in Eco-Points to request or borrow the item.
  * @property createdAt The date when the item was first listed.
@@ -36,6 +37,7 @@ data class SharedItem(
     val category: String,
     val location: String = "",
     val status: ItemStatus = ItemStatus.AVAILABLE,
+    val isRequest: Boolean = false,
     val imageUri: Uri? = null,
     val pointsValue: Int = 50,
     val createdAt: LocalDate = LocalDate.now()
