@@ -1,6 +1,7 @@
 package com.example.firstprototype.data
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.IgnoreExtraProperties
 import java.time.LocalDate
@@ -61,6 +62,7 @@ data class UserProfile(
 /**
  * Represents an entry in the user's point history log.
  */
+@Immutable
 @IgnoreExtraProperties
 data class HistoryLog(
     val id: String = "",
@@ -68,4 +70,17 @@ data class HistoryLog(
     val points: String = "",
     val isPositive: Boolean = true,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+/**
+ * Data model for a chat message preview in the Activity Center.
+ */
+@Immutable
+@IgnoreExtraProperties
+data class ChatMessage(
+    val id: String = "", 
+    val itemName: String = "", 
+    val contactName: String = "", 
+    val lastMessage: String = "", 
+    val time: String = ""
 )
